@@ -1,0 +1,43 @@
+name: Refresh product feed
+
+on:
+  schedule:
+    - cron: '15 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download feed
+        run: |
+          curl -sSf -A 'Mozilla/5.0' -o new.csv 'https://www.misso-lingerie.com/web/content/18823/chatgpt-products.csv'
+          header=$(head -c 9 new.csv)
+          if [ "$header" != '"item_id"' ]; then
+            echo "Unexpected feed header: ${header}"
+            exit 1
+          fi
+          lines=$(wc -l < new.csv)
+          if [ "$lines" -le 100 ]; then
+            echo "Feed too short: ${lines} lines"
+            exit 1
+          fi
+          mv new.csv chatgpt-products.csv
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- chatgpt-products.csv; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git add chatgpt-products.csv
+          git commit -m 'Refresh chatgpt-products.csv'
+          git push
