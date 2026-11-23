@@ -3,6 +3,7 @@ name: Refresh product feed
 on:
   schedule:
     - cron: '15 4 * * *'
+    - cron: '15 16 * * *'
   workflow_dispatch:
 
 permissions:
